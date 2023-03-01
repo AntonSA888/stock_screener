@@ -9,26 +9,26 @@ from openpyxl.styles import (
                         )
 from openpyxl import Workbook
 
-response = requests.get('https://api.marketinout.com/run/screen?key=334ebaa78b234e7c')
+response = requests.get('https://api.marketinout.com/run/screen?key=905d08db5fa24f77')
 text = response.text
 content = response.content
 
-with open("response.txt", "w", encoding='utf8') as f:
+with open("response_2.txt", "w", encoding='utf8') as f:
     f.write(response.text)  # Записываем ответ от сервера в текстовый файл
-    print('1. Ответ сервера записан в response.txt')
+    print('1. Ответ сервера записан в response_2.txt')
 
-with open("response.txt", "r", encoding='utf8') as f:
-    with open("response_modify.txt", "w", encoding='utf8') as m:
+with open("response_2.txt", "r", encoding='utf8') as f:
+    with open("response_2_modify.txt", "w", encoding='utf8') as m:
         for line in f:
             if not line.isspace():
                 m.write(line)
-        print('2. response.txt преобразован в response_modify.txt')
+        print('2. response_2.txt преобразован в response_2_modify.txt')
 
 df_1 = pd.DataFrame({})  # Создаем пустой датафрейм, чтобы добавлять к нему строки
 count = 0  # Счетчик строк в датафрейме
 count_pass = 0  # Счетчик пропущенных строк
 
-with open('response_modify.txt') as file:
+with open('response_2_modify.txt') as file:
     for line in file:
         list_ = list_float(line.removesuffix('\n').split('|'))
         # Проверка на количество пустых строк в списке-----------------------------
@@ -44,7 +44,7 @@ with open('response_modify.txt') as file:
             count_pass += 1
             continue
         # --------------------------------------------------------------------------
-        ticker =              list_[0].removesuffix('.ME')
+        ticker =              list_[0].removesuffix('.HK')
         name =                0
         last =                list_[1]
         date =                list_[2]
@@ -71,7 +71,7 @@ with open('response_modify.txt') as file:
             # 'Название': [name],
             'Цена': [last],
             'Дата': [date],
-            'Ликвидность': [likv(avol*last)],
+            # 'Ликвидность': [likv(avol*last)],
             'Честность': [chestn(beneish)],
             'Эффективность': [effect(piotroski)],
             'Устойчивость (по вероятности банкротства)': [ust_bankr(altman)],
@@ -96,7 +96,7 @@ with open('response_modify.txt') as file:
 print(f'3. Создано строк в датафрейме: {count}')
 print(f'4. Пропущено строк: {count_pass}')
 
-xl_name = '2023.XX.XX_russian_stocks.xlsx'
+xl_name = '2023.XX.XX_china_stocks.xlsx'
 # Указать writer библиотеки
 writer = pd.ExcelWriter(xl_name, engine='xlsxwriter')
 df_1.to_excel(writer, 'Sheet1', index=False)  # Записать ваш DataFrame в файл
@@ -135,11 +135,11 @@ for i in list_columns:
         cell.alignment = Alignment(wrapText=False, horizontal="left", vertical="center")
 
 # Заливка столбцов, используя свою функцию
-gr_yell_red(ws, 'No', 'I', 'L', 20, 10)  # Заливка столбцов с рентабельностью
-gr_yell_red(ws, 'Yes', 'M', 'M', 15, 15)  # Заливка столбца с рентабельностью P/E Шиллера
-gr_yell_red(ws, 'No', 'N', 'N', 40, 0)  # Заливка столбца Потенциал по Бенджамину Грэму, %
-gr_yell_red(ws, 'No', 'O', 'O', 40, 0)  # Заливка столбца Потенциал по Питеру Линчу, %
-gr_yell_red(ws, 'No', 'P', 'P', 40, 0)  # Заливка столбца Потенциал по прогнозируемому FCF, %
+gr_yell_red(ws, 'No', 'H', 'K', 20, 10)  # Заливка столбцов с рентабельностью
+gr_yell_red(ws, 'Yes', 'L', 'L', 15, 15)  # Заливка столбца с P/E Шиллера
+gr_yell_red(ws, 'No', 'M', 'M', 40, 0)  # Заливка столбца Потенциал по Бенджамину Грэму, %
+gr_yell_red(ws, 'No', 'N', 'N', 40, 0)  # Заливка столбца Потенциал по Питеру Линчу, %
+gr_yell_red(ws, 'No', 'O', 'O', 40, 0)  # Заливка столбца Потенциал по прогнозируемому FCF, %
 
 # Закрепляем области, которые выше и левее указанной ячейки
 ws.freeze_panes = 'B2'
