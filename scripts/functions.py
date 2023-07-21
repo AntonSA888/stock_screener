@@ -4,6 +4,7 @@ from openpyxl.styles import (
                         Alignment, Font, GradientFill
                         )
 
+
 def list_float(list_):  # Принимает список строк, и если нет ошибки, то строку превращает в число
     for i in range(0, len(list_)):
         try:
@@ -80,7 +81,7 @@ def akc_stoim(chestn, ust_bankr, graham_potential):
     try:
         if all([chestn == 'Высокая', ust_bankr == 'Высокая', graham_potential > 40]):
             return 'Покупать'
-        elif any([chestn == 'Низкая', ust_bankr == 'Низкая']):
+        elif any([chestn == 'Низкая', ust_bankr == 'Низкая', graham_potential <= 0]):
             return 'Продавать'
         else:
             return 'Держать'
@@ -111,6 +112,10 @@ def gr_yell_red(ws, invert, start_col, finish_col, more_then, less_then):
                 pass
 
 def likv(x):
+    # свыше 600 млн. руб. Высоколиквидные
+    # 60-600 - Среднеликвидные
+    # 1-60 - Низколиквидные
+    # менее 1 - Неликвидные
     try:
         if x < 1:
             return 'Неликвидные'
@@ -123,6 +128,15 @@ def likv(x):
     except TypeError:
         return '-'
 
-
+def us_growth_stocks(piotroski, avg_roe_3y, roa_1y, net_margin_1y):
+    try:
+        if all([piotroski > 7, avg_roe_3y >= 30, roa_1y >= 10, net_margin_1y >= 10]):
+            return 'Покупать'
+        elif all([5 < piotroski, 25 < avg_roe_3y, 8 < roa_1y, 8 < net_margin_1y]):
+            return 'Держать'
+        else:
+            return 'Продавать'
+    except TypeError:
+        return '-'
 
 
