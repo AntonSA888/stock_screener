@@ -1,3 +1,5 @@
 scripts/.env
 scripts/.idea
 scripts/.manual
+scripts/functions.py
+scripts/script_3.py
