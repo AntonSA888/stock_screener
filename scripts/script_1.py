@@ -14,10 +14,12 @@ load_dotenv(find_dotenv())
 def value_strategy(url, xl_name):
     response = requests.get(url)
 
+    # Записываем ответ от сервера в текстовый файл
     with open(f"responses/response_{xl_name}.txt", "w", encoding='utf8') as f:
-        f.write(response.text)  # Записываем ответ от сервера в текстовый файл
+        f.write(response.text)
         print(f'-----{xl_name}-----\n1. Ответ сервера записан в responses/response_...txt')
 
+    # Преобразовываем ответ сервера, удаляем лишние пропуски строк
     with open(f"responses/response_{xl_name}.txt", "r", encoding='utf8') as f:
         with open(f"responses/response_modify_{xl_name}.txt", "w", encoding='utf8') as m:
             for line in f:
@@ -26,14 +28,14 @@ def value_strategy(url, xl_name):
             print('2. response_...txt преобразован в response_modify_...txt')
 
     df_1 = pd.DataFrame({})  # Создаем пустой датафрейм, чтобы добавлять к нему строки
-    count = 0  # Счетчик строк в датафрейме
-    count_pass = 0  # Счетчик пропущенных строк
+    count = 0                # Счетчик строк в датафрейме
+    count_pass = 0           # Счетчик пропущенных строк
 
     with open(f'responses/response_modify_{xl_name}.txt') as file:
         for line in file:
             list_ = list_float(line.removesuffix('\n').split('|'))
-            # Проверка на количество пустых строк в списке-----------------------------
-            # Пропустить список, если таких строк больше count_none
+            # Проверка на количество отсутствующих показателей в списке
+            # Пропустить список, если таких значений больше count_none
             count_none = 0
             for i in list_:
                 try:
@@ -67,6 +69,7 @@ def value_strategy(url, xl_name):
             dvd_yield_5y_avg = list_[18]
             avol = list_[19]
             # Поскольку ликвидность считаем в рублях, цену акции тоже приводим к рублю, умножая на курс
+            # Далее заменить это значение, чтобы пересчитывалось автоматически
             if url == os.getenv('api_china_stocks'):
                 last_rub = last * 12
             elif url == os.getenv('api_russian_stocks'):
@@ -74,6 +77,8 @@ def value_strategy(url, xl_name):
             else:
                 print('!!!!! last_rub не вычислен !!!!!')
 
+            # На основе полученных данных производим вычисления, используя функции
+            # Создаем датафрейм, куда вносим результаты вычислений (в цикле для каждой строки)
             df_1_new_row = pd.DataFrame({
                 'Тикер': [ticker],
                 'Цена': [last],
@@ -92,26 +97,25 @@ def value_strategy(url, xl_name):
                 'Потенциал по Питеру Линчу, %': [if_none(lynch_potential)],
                 'Потенциал по прогнозируемому FCF, %': [if_none(intrinsic_potential)],
                 'Стратегия Акции Стоимости': [akc_stoim(chestn(beneish), ust_bankr(altman), graham_potential)],
-
             })
-
+            # Сцепляем вычисленный датафрейм с первым, постепенно наращивая его в цикле
             df_1 = pd.concat([df_1, df_1_new_row], ignore_index=True)  # сцепить датафреймы
-            count += 1
+            count += 1                                                 # считаем кол. успешно обработанных строк
 
     print(f'3. Создано строк в датафрейме: {count}')
     print(f'4. Пропущено строк: {count_pass}')
 
-    # Указать writer библиотеки
+    # Указываем writer библиотеки, для записи датафрейма в Excel
     writer = pd.ExcelWriter(f'spreadsheets/{xl_name}', engine='xlsxwriter')
-    df_1.to_excel(writer, 'Sheet1', index=False)  # Записать ваш DataFrame в файл
+    df_1.to_excel(writer, 'Sheet1', index=False)  # Записать DataFrame в файл
 
     writer.close()  # Сохраним результат
     print(f'5. Датафрейм записан в spreadsheets/...xlsx\n')
 
-    # Наводим красоту --------------------------------------------------------------------------------
+    # Делаем презентабельное оформление таблицы -----------------------------------------------------------------
     wb = openpyxl.load_workbook(f'spreadsheets/{xl_name}')  # читаем excel-файл
-    ws = wb['Sheet1']  # получаем лист, с которым будем работать
-    ws.row_dimensions[1].height = 75  # Высота первой строки в пикселах
+    ws = wb['Sheet1']                                       # получаем лист, с которым будем работать
+    ws.row_dimensions[1].height = 75                        # Высота первой строки в пикселах
 
     # Задаем ширину столбцов НЕ в пикселах
     ws.column_dimensions['A'].width = 8
@@ -132,10 +136,11 @@ def value_strategy(url, xl_name):
             elif any([cell.value == 'Низкая', cell.value == 'Продавать', cell.value == 'Неликвидные']):
                 cell.fill = PatternFill('solid', fgColor="FA8072")
 
-    # Заливка ячеек. У автора есть доля в этой компании - зеленым, от компании лучше держаться подальше - красным
+    # Заливка ячеек зеленым, если у автора есть доля в этих компаниях
+    # Компании, от которых лучше держаться подальше - красным
     my_positions = ['ALRS',
                     'KAZT',
-                    'NVTK',
+                    'STSB',
                     'GMKN',
                     'SBER',
                     'CHMF',
@@ -145,13 +150,13 @@ def value_strategy(url, xl_name):
                     'LKOH',
                     'RASP',
                     ]
-    dangerous_positions = ['KOGK',
-                           ]
+    dangerous_positions = []
+
     for row in ws:
         for cell in row:
             for i in my_positions:
                 if any([cell.value == i]):
-                    cell.fill = PatternFill('solid', fgColor="32CD32")
+                    cell.fill = PatternFill('solid', fgColor="b3b3b3")
             for j in dangerous_positions:
                 if any([cell.value == j]):
                     cell.fill = PatternFill('solid', fgColor="FA8072")
@@ -163,11 +168,11 @@ def value_strategy(url, xl_name):
             cell.alignment = Alignment(wrapText=False, horizontal="left", vertical="center")
 
     # Заливка столбцов, используя свою функцию
-    gr_yell_red(ws, 'No', 'I', 'L', 20, 10)  # Заливка столбцов с рентабельностью
+    gr_yell_red(ws, 'No', 'I', 'L', 20, 10)   # Заливка столбцов с рентабельностью
     gr_yell_red(ws, 'Yes', 'M', 'M', 15, 15)  # Заливка столбца с рентабельностью P/E Шиллера
-    gr_yell_red(ws, 'No', 'N', 'N', 40, 0)  # Заливка столбца Потенциал по Бенджамину Грэму, %
-    gr_yell_red(ws, 'No', 'O', 'O', 40, 0)  # Заливка столбца Потенциал по Питеру Линчу, %
-    gr_yell_red(ws, 'No', 'P', 'P', 40, 0)  # Заливка столбца Потенциал по прогнозируемому FCF, %
+    gr_yell_red(ws, 'No', 'N', 'N', 40, 0)    # Заливка столбца Потенциал по Бенджамину Грэму, %
+    gr_yell_red(ws, 'No', 'O', 'O', 40, 0)    # Заливка столбца Потенциал по Питеру Линчу, %
+    gr_yell_red(ws, 'No', 'P', 'P', 40, 0)    # Заливка столбца Потенциал по прогнозируемому FCF, %
 
     # Закрепляем области, которые выше и левее указанной ячейки
     ws.freeze_panes = 'B2'
@@ -176,8 +181,8 @@ def value_strategy(url, xl_name):
     wb.save(f'spreadsheets/{xl_name}')
 
 
+# Вызываем функцию, передаем API и дату в виде аргументов----------------------------------------------------
 today = datetime.datetime.today()
-
 value_strategy(os.getenv('api_russian_stocks'), f'{today:%Y.%m.%d}_russian_stocks.xlsx')
 value_strategy(os.getenv('api_china_stocks'), f'{today:%Y.%m.%d}_china_stocks.xlsx')
 
